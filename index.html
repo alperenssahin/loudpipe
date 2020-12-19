@@ -1,0 +1,123 @@
+<html lang="en">
+<head>
+    <title>Loud Pipe</title>
+</head>
+<body>
+<input type="file" id="input">
+<!--<button id="stop">STOP</button>-->
+<canvas id="canvas"></canvas>
+
+<script>
+    class Rect{
+        constructor(x,y,w,h,c) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.iw = 0;
+            this.ih = 0;
+            this.c = c;
+        }
+        update(){
+            if(this.iw < this.w){
+                this.iw += d;
+                this.x -= d/2;
+            }
+            if(this.ih < this.h){
+                this.ih+= d;
+                this.y -= d/2;
+            }
+        }
+        draw(ctx){
+            this.update();
+            ctx.fillStyle = this.c;
+            ctx.fillRect(this.x,this.y,this.iw,this.ih);
+        }
+    }
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const dpi = 2;
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    let input = document.getElementById("input");
+    canvas.width = dpi * width;
+    canvas.height = dpi * height;
+    const w = dpi * width;
+    const h = dpi * height;
+    const d = 1;
+    const f = 100;
+    let color = r(175,300);
+    ctx.fillStyle = `hsl(${color},50%,50%)`
+    let rects = []
+    let sampler = 1000;
+    let state = false;
+    input.onchange = (ev) =>{
+        let img = new Image;
+        state = false;
+        img.onload = () => {
+            ctx.drawImage(img, 0,0,w,h);
+            rects = createRect(sampler);
+            state = true;
+            draw()
+        }
+        img.src = URL.createObjectURL(ev.target.files[0]);
+    }
+    function draw(){
+        rects.forEach(rect=>{
+            rect.draw(ctx);
+        });
+        // ctx.fill()
+        if(state) window.requestAnimationFrame(draw)
+
+    }
+    function createRect(count = 100){
+        let rects = [];
+        for(let i = 0; i<count; i++){
+            let x = r(0,w);
+            let y = r(0,h);
+            let p = ctx.getImageData(x,y,1,1).data;
+            let hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+            rects.push(new Rect(x,y,r(0,w),r(0,h),hex))
+        }
+        return rects;
+    }
+    function rgbToHex(r, g, b) {
+        if (r > 255 || g > 255 || b > 255)
+            throw "Invalid color component";
+        return ((r << 16) | (g << 8) | b).toString(16);
+    }
+    function r(min,max){
+        return Math.round(Math.random()*max)+min;
+    }
+
+
+</script>
+<style>
+    * {
+        box-sizing: 0;
+        margin: 0;
+    }
+    #stop{
+        position: absolute;
+        top:25vh;
+        width: 50vw;
+        color: white;
+        font-size: 72px;
+        left: 25vw;
+        background-color: rgba(0,0,0,0);
+    }
+    #input{
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+    }
+    #canvas {
+        width: 100vw;
+        height: 100vh;
+    }
+</style>
+</body>
+</html>
