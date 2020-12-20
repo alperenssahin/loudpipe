@@ -6,6 +6,8 @@
 <input type="file" id="input">
 <!--<button id="stop">STOP</button>-->
 <canvas id="canvas"></canvas>
+<canvas id="imgvas"></canvas>
+
 
 <script>
     class Rect{
@@ -31,7 +33,9 @@
         draw(ctx){
             this.update();
             ctx.fillStyle = this.c;
-            ctx.fillRect(this.x,this.y,this.iw,this.ih);
+            // ctx.fillStyle = "#"+color[r(0,color.length-1)];
+            // ctx.fillRect(this.x,this.y,this.iw,this.ih);
+            ctx.fillRect(this.x,this.y,this.w,this.h);
         }
     }
 
@@ -39,27 +43,33 @@
     const height = window.innerHeight;
     const dpi = 2;
     let canvas = document.getElementById("canvas");
+    let imgVar = document.getElementById("imgvas");
     let ctx = canvas.getContext("2d");
+    let imgx = imgVar.getContext("2d");
     let input = document.getElementById("input");
     canvas.width = dpi * width;
     canvas.height = dpi * height;
+    imgVar.width = dpi * width;
+    imgVar.height = dpi * height;
     const w = dpi * width;
     const h = dpi * height;
     const d = 1;
     const f = 100;
-    let color = r(175,300);
-    ctx.fillStyle = `hsl(${color},50%,50%)`
+    // ctx.fillStyle = `hsl(${color},50%,50%)`
     let rects = []
-    let sampler = 1000;
-    let state = false;
+    let sampler = 10000;
+    let size = 100;
+    let color = [];
+    digestMessage(new Date().getTime().toString()).then(s=>{
+        color = shaParser(s);
+    });
     input.onchange = (ev) =>{
         let img = new Image;
-        state = false;
         img.onload = () => {
-            ctx.drawImage(img, 0,0,w,h);
-            rects = createRect(sampler);
-            state = true;
-            draw()
+                imgx.drawImage(img, 0,0,w,h);
+                ctx.clearRect(0,0,w,h);
+                rects = createRect(sampler);
+                draw()
         }
         img.src = URL.createObjectURL(ev.target.files[0]);
     }
@@ -68,7 +78,7 @@
             rect.draw(ctx);
         });
         // ctx.fill()
-        if(state) window.requestAnimationFrame(draw)
+        // window.requestAnimationFrame(draw)
 
     }
     function createRect(count = 100){
@@ -76,12 +86,22 @@
         for(let i = 0; i<count; i++){
             let x = r(0,w);
             let y = r(0,h);
-            let p = ctx.getImageData(x,y,1,1).data;
+            let p = imgx.getImageData(x,y,1,1).data;
             let hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
-            rects.push(new Rect(x,y,r(0,w),r(0,h),hex))
+            // let hexM = "#"+color[r(0,color.length-1)];
+            rects.push(new Rect(x,y,r(0,size),r(0,size),hex))
         }
         return rects;
     }
+    function hexToRgb(hex) {
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+
     function rgbToHex(r, g, b) {
         if (r > 255 || g > 255 || b > 255)
             throw "Invalid color component";
@@ -89,6 +109,28 @@
     }
     function r(min,max){
         return Math.round(Math.random()*max)+min;
+    }
+
+    async function digestMessage(message) {
+
+        const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);           // hash the message
+        const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
+        return hashHex;
+    }
+
+    function shaParser(hex){
+        let w = hex.match(/[\w]{1}/g);
+        let color = [];
+        for(let i = 0; i<w.length-6; i++){
+            let str = "";
+            for(let y = i; y<i+6; y++){
+                str += w[y];
+            }
+            color.push(str);
+        }
+        return color;
     }
 
 
@@ -113,10 +155,23 @@
         left: 0;
         width: 100vw;
         height: 100vh;
+        z-index: 999;
     }
-    #canvas {
+    #canvas,#imgvas {
         width: 100vw;
         height: 100vh;
+    }
+    #canvas{
+        position: relative;
+        z-index: 50;
+        opacity: 0.7;
+        /*background-color: aqua;*/
+    }
+    #imgvas{
+        position: absolute;
+        /*opacity: 0;*/
+        left: 0;
+        z-index: 0;
     }
 </style>
 </body>
